@@ -24,9 +24,14 @@ interface Product {
 
 export default function AdminPanel() {
   // পাসওয়ার্ড সুরক্ষার স্টেট
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const ADMIN_PASSWORD = "deshi1234"; // আপনার পাসওয়ার্ড
+  
+const [isAuthenticated, setIsAuthenticated] = useState(false);
+const [checkingSession, setCheckingSession] = useState(true);
+const [username, setUsername] = useState('admin');
+const [password, setPassword] = useState('');
+const [loginLoading, setLoginLoading] = useState(false);
+const [loginError, setLoginError] = useState('');
+
 
   const [activeTab, setActiveTab] = useState('orders'); 
   
@@ -40,6 +45,48 @@ export default function AdminPanel() {
   const [newStock, setNewStock] = useState('50');
   const [newDescription, setNewDescription] = useState(''); // নতুন
   const [newImage, setNewImage] = useState(''); // নতুন
+
+
+  useEffect(() => {
+    let active = true;
+
+    axios.get('/api/auth/me')
+      .then(() => {
+        if (active) setIsAuthenticated(true);
+      })
+      .catch(() => {
+        if (active) setIsAuthenticated(false);
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 401 &&
+          error.config?.url !== '/api/auth/login'
+        ) {
+          setIsAuthenticated(false);
+        }
+
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -64,15 +111,56 @@ export default function AdminPanel() {
   }, [isAuthenticated]);
 
   // লগইন হ্যান্ডেলার
-  const handleLogin = (e: React.FormEvent) => {
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-    } else {
-      alert('ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।');
+
+    setLoginLoading(true);
+    setLoginError('');
+
+    try {
+      await axios.post('/api/auth/login', {
+        username: username.trim(),
+        password,
+      });
+
       setPassword('');
+      setIsAuthenticated(true);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 429) {
+          setLoginError(
+            'অনেকবার ভুল লগইন হয়েছে। ১৫ মিনিট পরে চেষ্টা করুন।'
+          );
+        } else if (error.response?.status === 401) {
+          setLoginError('ভুল ইউজারনেম অথবা পাসওয়ার্ড।');
+        } else {
+          setLoginError('লগইন করা যাচ্ছে না। আবার চেষ্টা করুন।');
+        }
+      } else {
+        setLoginError('লগইন করা যাচ্ছে না।');
+      }
+
+      setPassword('');
+    } finally {
+      setLoginLoading(false);
     }
   };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/auth/logout');
+
+      setIsAuthenticated(false);
+      setOrders([]);
+      setProducts([]);
+      setPassword('');
+    } catch (error) {
+      console.error(error);
+      alert('লগআউট করা যাচ্ছে না। আবার চেষ্টা করুন।');
+    }
+  };
+
 
   // অর্ডারের স্ট্যাটাস আপডেট
   const updateOrderStatus = async (id: string, newStatus: string) => {
@@ -150,34 +238,91 @@ export default function AdminPanel() {
   // ==========================================
   // লগইন ফর্ম (যদি পাসওয়ার্ড না দেওয়া থাকে)
   // ==========================================
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">অ্যাডমিন লগইন</h2>
-            <p className="text-sm text-gray-500 mt-1">শুধুমাত্র অনুমোদিত ব্যক্তির জন্য</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <input 
-                type="password" 
-                placeholder="পাসওয়ার্ড দিন" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-[#2f6b3f] focus:ring-1 focus:ring-[#2f6b3f]"
-                autoFocus
-              />
-            </div>
-            <button type="submit" className="w-full bg-[#2f6b3f] text-white py-3 rounded-lg font-bold hover:bg-green-800 transition">
-              লগইন করুন
-            </button>
-          </form>
-          <a href="/" className="block text-center mt-4 text-sm text-gray-500 hover:text-gray-800">দোকানে ফিরুন</a>
+ 
+
+    if (checkingSession) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <p className="text-gray-600 font-medium">
+            অ্যাডমিন সেশন যাচাই হচ্ছে...
+          </p>
         </div>
-      </div>
-    );
-  }
+      );
+    }
+
+    if (!isAuthenticated) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-3">🔐</div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                অ্যাডমিন লগইন
+              </h2>
+              <p className="text-sm text-gray-500 mt-2">
+                Deshi Ponno Management
+              </p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ইউজারনেম
+                </label>
+                <input
+                  type="text"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Admin username"
+                  required
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-green-700"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  পাসওয়ার্ড
+                </label>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Admin password"
+                  required
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-green-700"
+                />
+              </div>
+
+              {loginError && (
+                <p
+                  role="alert"
+                  className="text-red-600 text-sm bg-red-50 p-3 rounded-lg"
+                >
+                  {loginError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full bg-[#2f6b3f] disabled:opacity-60 text-white py-3 rounded-lg font-bold hover:bg-green-800 transition"
+              >
+                {loginLoading ? 'লগইন হচ্ছে...' : 'লগইন করুন'}
+              </button>
+            </form>
+
+            <a
+              href="/"
+              className="block text-center mt-5 text-sm text-gray-500 hover:text-gray-800"
+            >
+              দোকানে ফিরুন
+            </a>
+          </div>
+        </div>
+      );
+    }
 
   // ==========================================
   // মূল অ্যাডমিন ড্যাশবোর্ড
@@ -195,7 +340,7 @@ export default function AdminPanel() {
           <div className="flex gap-2">
             <a href="/" className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">দোকানে ফিরুন</a>
             <button 
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
             >
               লগআউট
