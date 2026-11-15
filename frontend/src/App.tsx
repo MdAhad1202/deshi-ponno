@@ -32,7 +32,7 @@ function App() {
 
   // পণ্য লোড করা
   useEffect(() => {
-    axios.get('http://localhost:3000/products')
+    axios.get('/api/products')
       .then((res) => {
         setProducts(res.data);
         setLoading(false);
@@ -100,7 +100,7 @@ function App() {
     });
 
     try {
-      const response = await axios.post('http://localhost:3000/orders', {
+      const response = await axios.post('/api/orders', {
         customerName,
         phone: customerPhone,
         address: customerAddress,

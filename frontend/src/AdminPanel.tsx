@@ -45,8 +45,8 @@ export default function AdminPanel() {
     setLoading(true);
     try {
       const [ordersRes, productsRes] = await Promise.all([
-        axios.get('http://localhost:3000/orders'),
-        axios.get('http://localhost:3000/products')
+        axios.get('/api/orders'),
+        axios.get('/api/products')
       ]);
       setOrders(ordersRes.data);
       setProducts(productsRes.data);
@@ -77,7 +77,7 @@ export default function AdminPanel() {
   // অর্ডারের স্ট্যাটাস আপডেট
   const updateOrderStatus = async (id: string, newStatus: string) => {
     try {
-      await axios.patch(`http://localhost:3000/orders/${id}/status`, { status: newStatus });
+      await axios.patch(`/api/orders/${id}/status`, { status: newStatus });
       fetchData();
     } catch (error) {
       console.error(error);
@@ -87,7 +87,7 @@ export default function AdminPanel() {
   // পণ্যের দাম আপডেট
   const updateProductPrice = async (id: string, newPrice: number) => {
     try {
-      await axios.patch(`http://localhost:3000/products/${id}`, { price: newPrice });
+      await axios.patch(`/api/products/${id}`, { price: newPrice });
       fetchData();
       alert('দাম আপডেট হয়েছে!');
     } catch (error) {
@@ -98,7 +98,7 @@ export default function AdminPanel() {
   // পণ্যের স্টক আপডেট
   const updateProductStock = async (id: string, newStock: number) => {
     try {
-      await axios.patch(`http://localhost:3000/products/${id}`, { 
+      await axios.patch(`/api/products/${id}`, { 
         stock: newStock,
         inStock: newStock > 0 
       });
@@ -113,7 +113,7 @@ export default function AdminPanel() {
   const deleteProduct = async (id: string) => {
     if (!window.confirm('আপনি কি সত্যিই এই পণ্যটি ডিলিট করতে চান?')) return;
     try {
-      await axios.delete(`http://localhost:3000/products/${id}`);
+      await axios.delete(`/api/products/${id}`);
       fetchData();
     } catch (error) {
       console.error(error);
@@ -125,7 +125,7 @@ export default function AdminPanel() {
     e.preventDefault();
     if (!newName || !newPrice) return;
     try {
-      await axios.post('http://localhost:3000/products', {
+      await axios.post('/api/products', {
         name: newName,
         price: Number(newPrice),
         stock: Number(newStock),
