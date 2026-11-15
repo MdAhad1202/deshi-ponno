@@ -361,8 +361,10 @@ function App() {
                         className="w-full border border-gray-300 p-2.5 rounded-lg focus:outline-none focus:border-[#2f6b3f]"
                       >
                         <option value="COD">ক্যাশ অন ডেলিভারি</option>
+                        {/*}
                         <option value="Bkash">বিকাশ</option>
                         <option value="Nagad">নগদ</option>
+                        */}
                       </select>
                     </div>
                   </div>
