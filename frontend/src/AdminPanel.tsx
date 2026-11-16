@@ -169,6 +169,9 @@ const [loginError, setLoginError] = useState('');
       fetchData();
     } catch (error) {
       console.error(error);
+      if (axios.isAxiosError(error)) {
+        alert(error.response?.data?.message || 'স্ট্যাটাস আপডেট করা যায়নি।');
+      }
     }
   };
 
@@ -501,9 +504,14 @@ const [loginError, setLoginError] = useState('');
                         />
                       </td>
                       <td className="p-4">
+                        <div className="mb-1 font-bold text-[#2f6b3f]">
+                          মজুত: {product.stock ?? 0} {product.stock === 0 ? '(স্টক শেষ)' : 'টি'}
+                        </div>
                         <input 
+                          key={`${product._id}-${product.stock}`}
                           type="number" 
-                          defaultValue={product.stock || 0}
+                          min="0"
+                          defaultValue={product.stock ?? 0}
                           onBlur={(e) => {
                             const val = Number(e.target.value);
                             if (val !== product.stock) updateProductStock(product._id, val);
