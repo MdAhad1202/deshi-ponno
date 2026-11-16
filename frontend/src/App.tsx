@@ -48,6 +48,21 @@ function App() {
     localStorage.setItem('deshiPonnoCart', JSON.stringify(cart));
   }, [cart]);
 
+  // Admin order confirm করার পর সব ক্রেতার পেজে নতুন stock দেখাতে নিয়মিত refresh
+  useEffect(() => {
+    const refreshProducts = async () => {
+      try {
+        const res = await axios.get('/api/products');
+        setProducts(res.data);
+      } catch (err) {
+        console.error('স্টক আপডেট লোড করা যায়নি:', err);
+      }
+    };
+
+    const intervalId = window.setInterval(refreshProducts, 10000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   // স্টক চেক করে কার্টে যোগ করা
   const addToCart = (product: Product) => {
     const currentQty = cart[product._id] || 0;
@@ -224,7 +239,10 @@ function App() {
                   </div>
                   
                   <h3 className="font-bold text-lg text-[#4a2511]">{product.name}</h3>
-                  <p className="text-sm text-gray-500 mb-4 flex-1">{product.description}</p>
+                  <p className="text-sm text-gray-500 mb-2 flex-1">{product.description}</p>
+                  <p className={`text-xs font-semibold mb-3 ${product.stock > 0 ? 'text-green-700' : 'text-red-600'}`}>
+                    {product.stock > 0 ? `স্টকে আছে: ${product.stock} ${product.unit}` : 'স্টক শেষ'}
+                  </p>
                   <div className="flex items-end justify-between mt-auto">
                     <div className="text-xl font-bold text-[#2f6b3f]">
                       ৳{product.price}
