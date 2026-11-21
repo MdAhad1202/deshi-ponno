@@ -92,7 +92,7 @@ function App() {
   }, 0);
 
   // ডেলিভারি চার্জ আপাতত বন্ধ (০ টাকা)
-  const deliveryCharge = 0;
+  //const deliveryCharge = 0;
   const finalTotalPrice = totalItems > 0 ? totalPrice : 0;
 
   // অর্ডার কনফার্ম
